@@ -11,6 +11,7 @@
 #include <stdexcept>
 #include <utility>
 #include <vector>
+#include <chrono>
 
 #include "dmlc/logging.h"
 #include "npy.hpp"
@@ -64,19 +65,32 @@ std::vector<std::vector<float>> RunInference(DLRModelHandle model,
   input.ndim = shape.size();
   input.size = data.size();
 
-  if (SetDLRInput(&model, input_name.c_str(), input.shape.data(),
-                  input.data.data(), static_cast<int>(input.ndim)) != 0) {
-    throw std::runtime_error("Could not set input '" + input_name + "'");
-  }
-  if (RunDLRModel(&model) != 0) {
-    LOG(INFO) << DLRGetLastError() << std::endl;
-    throw std::runtime_error("Could not run");
-  }
-  for (int i = 0; i < num_outputs; i++) {
-    if (GetDLROutput(&model, i, outputs[i].data()) != 0) {
-      throw std::runtime_error("Could not get output" + std::to_string(i));
+  float total_time = 0.0f;
+  int num_iterations = 0;
+  for (int iter = 0; iter < 110; iter++) {
+    auto start = std::chrono::high_resolution_clock::now();
+    if (SetDLRInput(&model, input_name.c_str(), input.shape.data(),
+                    input.data.data(), static_cast<int>(input.ndim)) != 0) {
+      throw std::runtime_error("Could not set input '" + input_name + "'");
+    }
+    if (RunDLRModel(&model) != 0) {
+      LOG(INFO) << DLRGetLastError() << std::endl;
+      throw std::runtime_error("Could not run");
+    }
+    for (int i = 0; i < num_outputs; i++) {
+      if (GetDLROutput(&model, i, outputs[i].data()) != 0) {
+        throw std::runtime_error("Could not get output" + std::to_string(i));
+      }
+    }
+    auto stop = std::chrono::high_resolution_clock::now();
+    // Don't time first 10 iterations.
+    if (iter > 10) {
+      total_time += std::chrono::duration<float, std::chrono::milliseconds::period>(stop - start).count();
+      num_iterations++;
     }
   }
+  LOG(INFO) << "Mean latency for " << num_iterations << " iterations: " << (total_time / (float)num_iterations);
+
 
   return outputs;
 }
