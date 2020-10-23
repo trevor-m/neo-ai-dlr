@@ -83,27 +83,23 @@ class DLRModelImpl(IDLRModel):
     """
     
 
-    def __init__(self, model_path, dev_type='cpu', dev_id=0, error_log_file=None, use_default_dlr=False):
+    def __init__(self, model_path, dev_type=None, dev_id=0, error_log_file=None, use_default_dlr=False):
         self.logger = create_logger(log_file=error_log_file)
-        
+
         if not os.path.exists(model_path):
             raise ValueError("model_path %s doesn't exist" % model_path)
         for file_name in os.listdir(model_path):
             if file_name.endswith(".tensorrt"):
                 raise Exception("This model requires DLR release-1.1.0 to run.")
         self.handle = c_void_p()
-        device_table = {
-            'cpu': 1,
-            'gpu': 2,
-            'opencl': 4,
-        }
         self.model_path = model_path
         self.use_default_dlr = use_default_dlr
         self._lib = None
         self._init_libdlr()
+        self.dev_type = self.get_device_type_code(dev_type, model_path)
         self._check_call(self._lib.CreateDLRModel(byref(self.handle),
                                         c_char_p(model_path.encode()),
-                                        c_int(device_table[dev_type]),
+                                        c_int(self.dev_type),
                                         c_int(dev_id)))
 
         self.backend = self._parse_backend()
@@ -509,3 +505,34 @@ class DLRModelImpl(IDLRModel):
                                      out.ctypes.data_as(ctypes.POINTER(input_ctype))))
         out = out.reshape(shape)
         return out
+
+    def get_device_type_code(self, dev_type, model_path):
+        """Get device type integer code from device type string. If dev_type is None, we will attempt
+        to get it from the compiled model.
+
+        Parameters
+        ----------
+        dev_type : str
+            Device type string ('cpu', 'gpu', or 'opencl')
+        
+        Returns
+        -------
+        dev_type_code : int
+            Device type code (1, 2, or 4)
+        """
+        device_table = {
+            'cpu': 1,
+            'gpu': 2,
+            'opencl': 4,
+        }
+        if dev_type is None:
+            try:
+                ret = self._lib.GetDLRDeviceType(c_char_p(model_path.encode()))
+                if ret != -1:
+                    return ret
+            except:
+                # Model libdlr.so probably doesn't have GetDLRDeviceType.
+                pass
+            # Default option is CPU.
+            return device_table['cpu']
+        return device_table[dev_type]
