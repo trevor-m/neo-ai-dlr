@@ -151,7 +151,7 @@ int main(int argc, char** argv) {
   for (size_t i = 0; i < input_data.size(); ++i) {
     std::vector<int64_t> input_shape = {static_cast<int64_t>(input_data[i].size())};
     if (SetDLRInput(&pipeline, "input", input_shape.data(), input_data[i].data(), 1) != 0) {
-      throw std::runtime_error("SetDLRInput failed");
+      throw std::runtime_error(std::string("SetDLRInput failed: ") + DLRGetLastError());
     }
 
     if (RunDLRModel(&pipeline) != 0) {
