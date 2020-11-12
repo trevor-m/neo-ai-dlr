@@ -94,7 +94,7 @@ std::string GetFloatOutput(DLRModelHandle pipeline) {
   }
   std::vector<float> output(output_size, 0);
   if (GetDLROutput(&pipeline, 0, output.data()) != 0) {
-    throw std::runtime_error("GetDLROutput failed");
+    throw std::runtime_error(std::string("GetDLROutput failed: ") + DLRGetLastError());
   }
   std::stringstream ss;
   ss << "[[";
@@ -114,7 +114,7 @@ std::string GetJsonOutput(DLRModelHandle pipeline) {
   }
   std::vector<char> output(output_size, 0);
   if (GetDLROutput(&pipeline, 0, output.data()) != 0) {
-    throw std::runtime_error("GetDLROutput failed");
+    throw std::runtime_error(std::string("GetDLROutput failed: ") + DLRGetLastError());
   }
   return std::string(output.begin(), output.end());
 }
