@@ -18,17 +18,23 @@ namespace dlr {
 class DLR_DLL PipelineModel : public DLRModel {
  private:
   int count_;
-  const std::vector<DLRModelPtr> dlr_models_;
-  void CheckModelsCompatibility(const DLRModelPtr& m0, const DLRModelPtr& m1,
+  const std::vector<DLRModel*> dlr_models_;
+  void CheckModelsCompatibility(DLRModel* m0, DLRModel* m1,
                                 const int m1_id, const bool is_runtime_check);
   void SetupPipelineModel();
 
  public:
   /*! \brief Load model files from given folder path.
    */
-  explicit PipelineModel(const std::vector<DLRModelPtr>& dlr_models, const DLContext& ctx)
+  explicit PipelineModel(const std::vector<DLRModel*>& dlr_models, const DLContext& ctx)
       : DLRModel(ctx, DLRBackend::kPIPELINE), dlr_models_(dlr_models) {
     SetupPipelineModel();
+  }
+
+  ~PipelineModel() {
+    for (DLRModel* m : dlr_models_) {
+      delete m;
+    }
   }
 
   virtual const int GetInputDim(int index) const override;

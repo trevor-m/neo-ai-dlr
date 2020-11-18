@@ -162,8 +162,6 @@ class DLR_DLL DLRModel {
   
 };
 
-typedef std::shared_ptr<DLRModel> DLRModelPtr;
-
 }  // namespace dlr
 
 #endif  // DLR_COMMON_H_

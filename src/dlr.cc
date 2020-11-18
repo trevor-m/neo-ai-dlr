@@ -206,19 +206,19 @@ std::vector<std::string> MakePathVec(const char* model_path) {
   return path_vec;
 }
 
-DLRModelPtr CreateDLRModelPtr(const char* model_path, DLContext& ctx) {
+DLRModel* CreateDLRModelPtr(const char* model_path, DLContext& ctx) {
   std::vector<std::string> path_vec = MakePathVec(model_path);
   DLRBackend backend = dlr::GetBackend(path_vec);
   if (backend == DLRBackend::kTVM) {
-    return std::make_shared<TVMModel>(path_vec, ctx);
+    return new TVMModel(path_vec, ctx);
   } else if (backend == DLRBackend::kRELAYVM) {
-    return std::make_shared<RelayVMModel>(path_vec, ctx);
+    return new RelayVMModel(path_vec, ctx);
   } else if (backend == DLRBackend::kTREELITE) {
-    return std::make_shared<TreeliteModel>(path_vec, ctx);
+    return new TreeliteModel(path_vec, ctx);
   #ifdef DLR_HEXAGON
     } else if (backend == DLRBackend::kHEXAGON) {
       const std::string model_path_string(model_path);
-      return std::make_shared<HexagonModel>(model_path_string, ctx, 1 /*debug_level*/);
+      return new HexagonModel(model_path_string, ctx, 1 /*debug_level*/);
   #endif  // DLR_HEXAGON
   } else {
     throw dmlc::Error("Unsupported backend!");
@@ -290,10 +290,10 @@ extern "C" int CreateDLRPipeline(DLRModelHandle* handle,
   DLContext ctx;
   ctx.device_type = static_cast<DLDeviceType>(dev_type);
   ctx.device_id = dev_id;
-  std::vector<DLRModelPtr> dlr_models;
+  std::vector<DLRModel*> dlr_models;
   for (int i = 0; i < num_models; i++) {
     try {
-      DLRModelPtr model_ptr = CreateDLRModelPtr(model_paths[i], ctx);
+      DLRModel* model_ptr = CreateDLRModelPtr(model_paths[i], ctx);
       dlr_models.push_back(model_ptr);
     } catch (dmlc::Error& e) {
       LOG(ERROR) << e.what();

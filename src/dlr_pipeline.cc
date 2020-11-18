@@ -8,8 +8,7 @@
 
 using namespace dlr;
 
-
-void PipelineModel::CheckModelsCompatibility(const DLRModelPtr& m0, const DLRModelPtr& m1,
+void PipelineModel::CheckModelsCompatibility(DLRModel* m0, DLRModel* m1,
                                              const int m1_id, const bool is_runtime_check) {
   if (!is_runtime_check) {
     CHECK_EQ(m0->GetNumOutputs(), m1->GetNumInputs())
@@ -67,8 +66,8 @@ void PipelineModel::SetupPipelineModel() {
   }
   // Check previous model outputs and current model inputs compatibility
   for (int i = 1; i < count_; i++) {
-    const DLRModelPtr prev_model = dlr_models_[i - 1];
-    const DLRModelPtr curr_model = dlr_models_[i];
+    DLRModel* prev_model = dlr_models_[i - 1];
+    DLRModel* curr_model = dlr_models_[i];
     CheckModelsCompatibility(prev_model, curr_model, i /*m1_id*/, false /*is_runtime_check*/);
   }
 }
@@ -128,8 +127,8 @@ const char* PipelineModel::GetOutputType(int index) const {
 void PipelineModel::Run() {
   dlr_models_[0]->Run();
   for (int i = 1; i < count_; i++) {
-    const DLRModelPtr prev_model = dlr_models_[i - 1];
-    const DLRModelPtr curr_model = dlr_models_[i];
+    DLRModel* prev_model = dlr_models_[i - 1];
+    DLRModel* curr_model = dlr_models_[i];
     CheckModelsCompatibility(prev_model, curr_model, i /*m1_id*/, true /*is_runtime_check*/);
     // for each model input
     for (int j = 0; j < curr_model->GetNumInputs(); j++) {
@@ -152,7 +151,7 @@ const char* PipelineModel::GetBackend() const { return "pipeline"; }
 void PipelineModel::SetNumThreads(int threads) {
   // Try to set Number of Threads to pipeline models
   // Ignore the errors in case some of the models do not support this feature.
-  for (DLRModelPtr m : dlr_models_) {
+  for (DLRModel* m : dlr_models_) {
     try {
       m->SetNumThreads(threads);
     } catch (dmlc::Error& e) {
@@ -164,7 +163,7 @@ void PipelineModel::SetNumThreads(int threads) {
 void PipelineModel::UseCPUAffinity(bool use) {
   // Try to set UseCPUAffinity to pipeline models.
   // Ignore the errors in case some of the models do not support this feature.
-  for (DLRModelPtr m : dlr_models_) {
+  for (DLRModel* m : dlr_models_) {
     try {
       m->UseCPUAffinity(use);
     } catch (dmlc::Error& e) {
